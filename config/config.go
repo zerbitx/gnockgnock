@@ -7,9 +7,9 @@ import (
 type (
 	Env struct {
 		Host           string `envconfig:"HOST" default:"127.0.0.1"`
-		AppPort        int    `envconfig:"PORT" default:"8080"`
-		ConfigPort     int    `envconfig:"CONFIG_PORT" default:"8081"`
+		Port           int    `envconfig:"PORT" default:"8080"`
 		ConfigFilePath string `envconfig:"GNOCK_CONFIG" default:"./gnockgnock.yaml"`
+		LogLevel       string `envconfig:"LOG_LEVEL" default:"debug"`
 	}
 )
 

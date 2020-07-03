@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"strings"
 	"time"
@@ -11,7 +12,6 @@ import (
 	"github.com/gofiber/fiber"
 	"github.com/google/uuid"
 	"github.com/zerbitx/gnockgnock/spec"
-	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
 )
 
@@ -20,11 +20,14 @@ type (
 
 	gnocker struct {
 		app          *fiber.App
+		configApp    *fiber.App
 		handlers     map[string]map[string]map[string]fiber.Handler
 		tokens       map[string]string
 		handlerBases map[string]fiberBinding
 		pathsSeen    map[string]bool
-		logger       *zap.SugaredLogger
+		logger       logrus.FieldLogger
+		port         int
+		host         string
 	}
 
 	configConflict string
@@ -33,6 +36,14 @@ type (
 		ConfigName string `json:"configName"`
 		Token      string `json:"token"`
 	}
+
+	config struct {
+		port   int
+		host   string
+		logger logrus.FieldLogger
+	}
+
+	Option func(c *config)
 )
 
 const TOKEN_HEADER = "X-GNOCKER"
@@ -41,10 +52,34 @@ func (cc configConflict) Error() string {
 	return fmt.Sprintf("a config with the name %s already exists", cc)
 }
 
-func New(app *fiber.App, configApp *fiber.App, logger *zap.SugaredLogger) *gnocker {
-	h := &gnocker{
-		handlers: map[string]map[string]map[string]fiber.Handler{},
-		tokens:   map[string]string{},
+func New(options ...Option) *gnocker {
+	logrus.SetReportCaller(true)
+	c := &config{
+		port:   8080,
+		logger: logrus.StandardLogger(),
+		host:   "127.0.0.1",
+	}
+
+	for _, applyOption := range options {
+		applyOption(c)
+	}
+
+	fiberSettings := &fiber.Settings{
+		ServerHeader:          "GnockGnock",
+		DisableStartupMessage: true,
+	}
+
+	app := fiber.New(fiberSettings)
+	configApp := fiber.New(fiberSettings)
+
+	g := &gnocker{
+		logger:    c.logger,
+		app:       app,
+		configApp: configApp,
+		port:      c.port,
+		host:      c.host,
+		handlers:  map[string]map[string]map[string]fiber.Handler{},
+		tokens:    map[string]string{},
 		handlerBases: map[string]fiberBinding{
 			http.MethodGet:     app.Get,
 			http.MethodPost:    app.Post,
@@ -57,12 +92,48 @@ func New(app *fiber.App, configApp *fiber.App, logger *zap.SugaredLogger) *gnock
 			http.MethodHead:    app.Head,
 		},
 		pathsSeen: map[string]bool{},
-		logger:    logger,
 	}
 
-	h.initConfigApp(configApp)
+	g.initConfigApp(configApp)
 
-	return h
+	return g
+}
+
+func (g *gnocker) Start() error {
+	errc := make(chan error)
+
+	// Start up our main server
+	go func() {
+		g.logger.WithFields(logrus.Fields{"host": g.host, "port": g.port}).Info("main")
+		errc <- g.app.Listen(fmt.Sprintf("%s:%d", g.host, g.port))
+	}()
+
+	// Start up the config server
+	go func() {
+		configPort := g.port + 1
+		g.logger.WithFields(logrus.Fields{"host": g.host, "port": configPort}).Info("config")
+		errc <- g.configApp.Listen(fmt.Sprintf("%s:%d", g.host, configPort))
+	}()
+
+	return <-errc
+}
+
+func WithLogger(l logrus.FieldLogger) Option {
+	return func(c *config) {
+		c.logger = l
+	}
+}
+
+func WithHost(host string) Option {
+	return func(c *config) {
+		c.host = host
+	}
+}
+
+func WithPort(port int) Option {
+	return func(c *config) {
+		c.port = port
+	}
 }
 
 // AddConfig will wire in a new configuration with its own set of routes and responses associated with a token for
@@ -86,8 +157,7 @@ func (g *gnocker) AddConfig(operations spec.Configurations) error {
 
 			go func() {
 				<-time.After(dur)
-				g.logger.Infow("Removing expired",
-					"config", configName)
+				g.logger.WithField("config", configName).Info("Removing expired")
 				delete(g.handlers, configName)
 			}()
 		}
@@ -96,10 +166,11 @@ func (g *gnocker) AddConfig(operations spec.Configurations) error {
 			for m, options := range methods {
 				method := strings.ToUpper(m)
 
-				g.logger.Debugw("wiring",
-					"config", configName,
-					"path", path,
-					"method", method)
+				g.logger.WithFields(logrus.Fields{
+					"config": configName,
+					"path":   path,
+					"method": method,
+				}).Debug("wiring")
 
 				if _, ok := g.handlers[configName][path]; !ok {
 					g.handlers[configName][path] = map[string]fiber.Handler{}
@@ -124,16 +195,17 @@ func (g *gnocker) AddConfig(operations spec.Configurations) error {
 							servingConfig = g.tokens[gnockerToken]
 						}
 
-						g.logger.Debugw("serving",
-							"config", servingConfig,
-							"token", gnockerToken,
-							"path", c.Path(),
-							"method", method)
+						g.logger.WithFields(logrus.Fields{
+							"config": servingConfig,
+							"token":  gnockerToken,
+							"path":   c.Path(),
+							"method": method,
+						}).Debug("serving")
 
 						handler = g.handlers[servingConfig][c.Path()]
 
 						if handler != nil {
-							handler[method](c)
+							handler[c.Method()](c)
 						} else {
 							c.SendStatus(http.StatusNotFound)
 						}
