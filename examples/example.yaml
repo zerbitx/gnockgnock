@@ -1,0 +1,11 @@
+assignAccount:
+  ttl: 20s
+  paths:
+    '/v1/accounts/:userHandle':
+      post:
+        statusCode: 201
+        payload: >
+          {"userHandle": "ryan"}
+    '/v1/gnocker':
+      get:
+        payload: 'v1'
