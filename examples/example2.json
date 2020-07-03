@@ -1,0 +1,22 @@
+{
+   "extendAccount": {
+      "paths": {
+         "/v1/accounts/:userHandle/extend": {
+            "post": {
+               "statusCode": 201,
+               "payload": "{\"access\": \"granted\"}\n"
+            }
+         },
+         "/v1/gnocker": {
+            "get": {
+               "payload": "v2"
+            }
+         },
+         "/v2/gnocker": {
+            "get": {
+               "payload": "blah blah\n"
+            }
+         }
+      }
+   }
+}
