@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/gofiber/utils"
 	"github.com/sirupsen/logrus"
 	"html/template"
 	"net/http"
@@ -187,32 +188,34 @@ func (g *gnocker) AddConfig(operations spec.Configurations) error {
 					}
 				}
 
-				g.handlers[configName][path][method] = func(c *fiber.Ctx) {
-					c.Status(options.StatusCode)
+				g.handlers[configName][path][method] = func(params []string) fiber.Handler {
+					return func(c *fiber.Ctx) {
+						c.Status(options.StatusCode)
 
-					// If a template was configured and parsed, correctly
-					if tpl != nil {
-						var buf bytes.Buffer
-						templateVars := map[string]string{}
+						// If a template was configured and parsed, correctly
+						if tpl != nil {
+							var buf bytes.Buffer
+							templateVars := map[string]string{}
 
-						// populate the template data from the params
-						for _, name := range c.ParamList() {
-							templateVars[name] = c.Params(name)
+							// populate the template data from the params
+							for _, name := range params {
+								templateVars[name] = c.Params(name)
+							}
+
+							err := tpl.Execute(&buf, templateVars)
+
+							if err != nil {
+								g.logger.WithError(err).Error("failed to execute template")
+								c.SendStatus(http.StatusInternalServerError)
+							}
+
+							c.SendBytes(buf.Bytes())
+						} else if options.ResponseBody != "" {
+							// otherwise use the static response
+							c.Send(options.ResponseBody)
 						}
-
-						err := tpl.Execute(&buf, templateVars)
-
-						if err != nil {
-							g.logger.WithError(err).Error("failed to execute template")
-							c.SendStatus(http.StatusInternalServerError)
-						}
-
-						c.SendBytes(buf.Bytes())
-					} else if options.ResponseBody != "" {
-						// otherwise use the static response
-						c.Send(options.ResponseBody)
 					}
-				}
+				}(parseParams(path))
 
 				if _, seen := g.pathsSeen[method+":"+path]; !seen {
 					go func(path, method, configName string) {
@@ -313,4 +316,49 @@ func JSONString(v interface{}) string {
 	jb, _ := json.MarshalIndent(v, "", "")
 
 	return string(jb)
+}
+
+// parseParams returns a list of the names of the path parameters
+func parseParams(pattern string) (params []string) {
+	part, delimiterPos := "", 0
+	for len(pattern) > 0 && delimiterPos != -1 {
+		delimiterPos = findNextRouteSegmentEnd(pattern)
+		if delimiterPos != -1 {
+			part = pattern[:delimiterPos]
+		} else {
+			part = pattern
+		}
+
+		partLen := len(part)
+		if partLen == 0 { // skip empty parts
+			if len(pattern) > 0 {
+				// remove first char
+				pattern = pattern[1:]
+			}
+			continue
+		}
+
+		// is parameter ?
+		if part[0] == '*' || part[0] == ':' {
+			params = append(params, utils.GetTrimmedParam(part))
+			// combine const segments
+		}
+
+		if delimiterPos != -1 && len(pattern) >= delimiterPos+1 {
+			pattern = pattern[delimiterPos+1:]
+		}
+	}
+
+	return params
+}
+
+func findNextRouteSegmentEnd(search string) int {
+	nextPosition := -1
+	for _, delimiter := range []byte{'/', '-', '.'} {
+		if pos := strings.IndexByte(search, delimiter); pos != -1 && (pos < nextPosition || nextPosition == -1) {
+			nextPosition = pos
+		}
+	}
+
+	return nextPosition
 }
