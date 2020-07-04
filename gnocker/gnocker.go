@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/sirupsen/logrus"
+	"html/template"
 	"net/http"
 	"strings"
 	"time"
@@ -175,41 +176,73 @@ func (g *gnocker) AddConfig(operations spec.Configurations) error {
 				if _, ok := g.handlers[configName][path]; !ok {
 					g.handlers[configName][path] = map[string]fiber.Handler{}
 				}
-				// create a handler to spec
+
+				var tpl *template.Template
+				var err error
+				if options.ResponseBodyTemplate != "" {
+					tpl, err = template.New(configName).Parse(options.ResponseBodyTemplate)
+
+					if err != nil {
+						return err
+					}
+				}
+
 				g.handlers[configName][path][method] = func(c *fiber.Ctx) {
 					c.Status(options.StatusCode)
-					if options.Payload != "" {
-						c.Send(options.Payload)
+
+					// If a template was configured and parsed, correctly
+					if tpl != nil {
+						var buf bytes.Buffer
+						templateVars := map[string]string{}
+
+						// populate the template data from the params
+						for _, name := range c.ParamList() {
+							templateVars[name] = c.Params(name)
+						}
+
+						err := tpl.Execute(&buf, templateVars)
+
+						if err != nil {
+							g.logger.WithError(err).Error("failed to execute template")
+							c.SendStatus(http.StatusInternalServerError)
+						}
+
+						c.SendBytes(buf.Bytes())
+					} else if options.ResponseBody != "" {
+						// otherwise use the static response
+						c.Send(options.ResponseBody)
 					}
 				}
 
 				if _, seen := g.pathsSeen[method+":"+path]; !seen {
-					g.handlerBases[method](path, func(c *fiber.Ctx) {
-						gnockerToken := c.Get(TOKEN_HEADER)
+					go func(path, method, configName string) {
+						g.handlerBases[method](path, func(c *fiber.Ctx) {
+							gnockerToken := c.Get(TOKEN_HEADER)
 
-						// If no token was sent, serve the first path configured by this instance
-						// otherwise look up the correct handler by the token sent
-						var handler map[string]fiber.Handler
-						servingConfig := configName
-						if gnockerToken != "" {
-							servingConfig = g.tokens[gnockerToken]
-						}
+							// If no token was sent, serve the first path configured by this instance
+							// otherwise look up the correct handler by the token sent
+							var handler map[string]fiber.Handler
+							servingConfig := configName
+							if gnockerToken != "" {
+								servingConfig = g.tokens[gnockerToken]
+							}
 
-						g.logger.WithFields(logrus.Fields{
-							"config": servingConfig,
-							"token":  gnockerToken,
-							"path":   c.Path(),
-							"method": method,
-						}).Debug("serving")
+							g.logger.WithFields(logrus.Fields{
+								"config": servingConfig,
+								"token":  gnockerToken,
+								"path":   c.Path(),
+								"method": method,
+							}).Debug("serving")
 
-						handler = g.handlers[servingConfig][c.Path()]
+							handler = g.handlers[servingConfig][path]
 
-						if handler != nil {
-							handler[c.Method()](c)
-						} else {
-							c.SendStatus(http.StatusNotFound)
-						}
-					})
+							if handler != nil {
+								handler[c.Method()](c)
+							} else {
+								c.SendStatus(http.StatusNotFound)
+							}
+						})
+					}(path, method, configName)
 					g.pathsSeen[method+":"+path] = true
 				}
 			}
@@ -238,13 +271,18 @@ func (g *gnocker) initConfigApp(configApp *fiber.App) {
 			return
 		}
 
-		gnockerToken := uuid.New().String()
+		var newTokens []tokensResponse
 		for name := range newOperations {
+			gnockerToken := uuid.New().String()
 			g.tokens[gnockerToken] = name
+			newTokens = append(newTokens, tokensResponse{
+				ConfigName: name,
+				Token:      gnockerToken,
+			})
 		}
 
 		c.Status(http.StatusAccepted)
-		c.Send(fmt.Sprintf("Send the X-GNOCKER header with this token (%s) to invoke this configuration you can hit the config API /tokens to retrieve all currently configured tokens\n", gnockerToken))
+		c.Send(JSONString(newTokens))
 	})
 
 	configApp.Get("/tokens", func(c *fiber.Ctx) {
@@ -258,7 +296,9 @@ func (g *gnocker) initConfigApp(configApp *fiber.App) {
 
 		var buf bytes.Buffer
 
-		err := json.NewEncoder(&buf).Encode(tokens)
+		encoder := json.NewEncoder(&buf)
+		encoder.SetIndent("", " ")
+		err := encoder.Encode(tokens)
 
 		if err != nil {
 			c.SendStatus(http.StatusInternalServerError)
@@ -267,4 +307,10 @@ func (g *gnocker) initConfigApp(configApp *fiber.App) {
 
 		c.SendBytes(buf.Bytes())
 	})
+}
+
+func JSONString(v interface{}) string {
+	jb, _ := json.MarshalIndent(v, "", "")
+
+	return string(jb)
 }

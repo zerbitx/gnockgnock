@@ -4,8 +4,11 @@ assignAccount:
     '/v1/accounts/:userHandle':
       post:
         statusCode: 201
-        payload: >
+        responseBody: >
           {"userHandle": "ryan"}
     '/v1/gnocker':
       get:
-        payload: 'v1'
+        responseBody: 'v1'
+    '/v1/gnocker/:whosThere':
+      get:
+        responseBodyTemplate: 'This is a template based on {{ .whosThere }} blah blah\n'

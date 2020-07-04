@@ -3,8 +3,8 @@ extendAccount:
     '/v1/accounts/:userHandle/extend':
       post:
         statusCode: 201
-        payload: >
+        responseBody: >
           {"access": "granted"}
     '/v1/gnocker':
       get:
-        payload: 'v2'
+        responseBody: 'v2'

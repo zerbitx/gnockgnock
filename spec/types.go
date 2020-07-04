@@ -11,7 +11,8 @@ type (
 	Methods map[string]Method
 
 	Method struct {
-		Payload    string `json:"payload" yaml:"payload"`
-		StatusCode int    `json:"statusCode" yaml:"statusCode"`
+		ResponseBody         string `json:"responseBody" yaml:"responseBody"`
+		ResponseBodyTemplate string `json:"responseBodyTemplate" yaml:"responseBodyTemplate"`
+		StatusCode           int    `json:"statusCode" yaml:"statusCode"`
 	}
 )

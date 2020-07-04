@@ -1,20 +1,20 @@
 {
-   "extendAccount": {
+   "flagAccount": {
       "paths": {
-         "/v1/accounts/:userHandle/extend": {
+         "/v1/accounts/:userID/flag": {
             "post": {
                "statusCode": 201,
-               "payload": "{\"access\": \"granted\"}\n"
+               "responseBodyTemplate": "{\"{{.userID}}\": \"flagged\"}\n"
             }
-         },
-         "/v1/gnocker": {
-            "get": {
-               "payload": "v2"
-            }
-         },
-         "/v2/gnocker": {
-            "get": {
-               "payload": "blah blah\n"
+         }
+      }
+   },
+   "flagAccountNotFound": {
+      "paths": {
+         "/v1/accounts/:userID/extend": {
+            "post": {
+               "statusCode": 404,
+               "responseBodyTemplate": "No account found for that {{.userID}}\n\n"
             }
          }
       }

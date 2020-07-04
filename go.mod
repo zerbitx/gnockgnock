@@ -12,3 +12,5 @@ require (
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gopkg.in/yaml.v2 v2.3.0
 )
+
+replace github.com/gofiber/fiber => github.com/zerbitx/fiber v1.12.5-0.20200704194754-104f4fcddf11

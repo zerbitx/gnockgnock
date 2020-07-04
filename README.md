@@ -5,7 +5,8 @@
 Live customizable server for e2e testing
 
 ### TODO:
-    1) Everything...this is the first commit, duh.
+    1) Come up with TODOs
+    2) Tests
     
 # Goal
 
