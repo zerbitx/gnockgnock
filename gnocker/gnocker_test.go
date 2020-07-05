@@ -17,7 +17,7 @@ import (
 
 var _ = Describe("Gnocker", func() {
 	client := http.Client{Timeout: time.Second * 10}
-	port := 74656
+	port := 1701
 	var app *gnocker
 
 	BeforeSuite(func() {
@@ -26,6 +26,7 @@ var _ = Describe("Gnocker", func() {
 
 		go func() {
 			err := app.Start()
+			println(err)
 			Expect(err).ShouldNot(HaveOccurred())
 		}()
 
