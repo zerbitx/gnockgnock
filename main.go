@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
 
 	"github.com/sirupsen/logrus"
 	"github.com/zerbitx/gnockgnock/config"
@@ -11,6 +12,11 @@ import (
 	"github.com/zerbitx/gnockgnock/spec"
 	"gopkg.in/yaml.v2"
 )
+
+type Server interface {
+	Start() error
+	Shutdown() error
+}
 
 func main() {
 	cfg := config.New()
@@ -23,6 +29,8 @@ func main() {
 		gnocker.WithHost(cfg.Host),
 		gnocker.WithPort(cfg.Port),
 		gnocker.WithLogger(logger))
+
+	go captureInterrupt(g)
 
 	// Try to load a default config
 	{
@@ -53,4 +61,12 @@ func setLogLevel(lvlStr string) {
 	}
 
 	logrus.SetLevel(logrus.WarnLevel)
+}
+
+func captureInterrupt(g Server) {
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt)
+
+	<-c
+	g.Shutdown()
 }

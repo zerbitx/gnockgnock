@@ -6,7 +6,6 @@ Live customizable server for e2e testing
 
 ### TODO:
     1) Come up with TODOs
-    2) Tests
     
 # Goal
 
