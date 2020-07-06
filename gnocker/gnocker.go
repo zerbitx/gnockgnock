@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"html/template"
 	"net/http"
 	"strings"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/gofiber/fiber"
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 	"github.com/zerbitx/gnockgnock/spec"
 	"gopkg.in/yaml.v2"
 )
@@ -34,20 +34,24 @@ type (
 	configConflict string
 
 	config struct {
-		port   int
-		host   string
-		logger logrus.FieldLogger
+		port       int
+		configPort int
+		host       string
+		logger     logrus.FieldLogger
 	}
 
 	Option func(c *config)
 )
 
-const TOKEN_HEADER = "X-GNOCKER"
+// TokenHeader is the constant for the head you pass if you need to overload paths/methods
+const TokenHeader = "X-GNOCKER"
 
+// Error implements the error interface
 func (cc configConflict) Error() string {
 	return fmt.Sprintf("a config with the name %s already exists", cc)
 }
 
+// New returns a new gnocker with a default setup of up app and config on 127.0.0.1 on ports 8080 & 8081
 func New(options ...Option) *gnocker {
 	logrus.SetReportCaller(true)
 	c := &config{
@@ -58,6 +62,11 @@ func New(options ...Option) *gnocker {
 
 	for _, applyOption := range options {
 		applyOption(c)
+	}
+
+	// Silly convention?
+	if c.configPort == 0 {
+		c.configPort = c.port + 1
 	}
 
 	fiberSettings := &fiber.Settings{
@@ -95,6 +104,7 @@ func New(options ...Option) *gnocker {
 	return g
 }
 
+// Start starts both apps
 func (g *gnocker) Start() error {
 	errc := make(chan error)
 
@@ -114,6 +124,7 @@ func (g *gnocker) Start() error {
 	return <-errc
 }
 
+// Shutdown gracefully shuts down both apps
 func (g *gnocker) Shutdown() error {
 	var err error = nil
 
@@ -128,21 +139,31 @@ func (g *gnocker) Shutdown() error {
 	return err
 }
 
+// WithLogger overrides the default logger
 func WithLogger(l logrus.FieldLogger) Option {
 	return func(c *config) {
 		c.logger = l
 	}
 }
 
+// WithHost sets the host
 func WithHost(host string) Option {
 	return func(c *config) {
 		c.host = host
 	}
 }
 
+// WithPort sets the main app's port
 func WithPort(port int) Option {
 	return func(c *config) {
 		c.port = port
+	}
+}
+
+// WithConfigPort sets the config app's port
+func WithConfigPort(configPort int) Option {
+	return func(c *config) {
+		c.configPort = configPort
 	}
 }
 
@@ -226,7 +247,7 @@ func (g *gnocker) AddConfig(operations spec.Configurations) error {
 				if _, seen := g.pathsSeen[method+":"+path]; !seen {
 					go func(path, method, configName string) {
 						g.handlerBases[method](path, func(c *fiber.Ctx) {
-							gnockerToken := c.Get(TOKEN_HEADER)
+							gnockerToken := c.Get(TokenHeader)
 
 							// If no token was sent, serve the first path configured by this instance
 							// otherwise look up the correct handler by the token sent

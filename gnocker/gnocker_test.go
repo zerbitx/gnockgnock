@@ -69,7 +69,7 @@ var _ = Describe("Gnocker", func() {
 			expectedResponse := "success"
 
 			err := app.AddConfig(spec.Configurations{
-				"configName": spec.Path{
+				"configName": spec.Configuration{
 					Paths: map[string]spec.Methods{
 						path: map[string]spec.Method{
 							http.MethodGet: {
@@ -131,8 +131,10 @@ var _ = Describe("Gnocker", func() {
 						fmt.Sprintf("http://127.0.0.1:%d/v1/gnock/gnock", port),
 						nil)
 
+					Expect(err).ShouldNot(HaveOccurred())
+
 					for _, tkn := range configTokens {
-						req.Header.Add(TOKEN_HEADER, tkn)
+						req.Header.Add(TokenHeader, tkn)
 					}
 
 					res, err = client.Do(req)
@@ -140,6 +142,7 @@ var _ = Describe("Gnocker", func() {
 					Expect(res.StatusCode).To(Equal(http.StatusCreated))
 
 					response, err := ioutil.ReadAll(res.Body)
+					Expect(err).ShouldNot(HaveOccurred())
 					Expect(string(response)).To(Equal("success"))
 				})
 			})
@@ -176,7 +179,7 @@ var _ = Describe("Gnocker", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 
 				for _, tkn := range configTokens {
-					req.Header.Add(TOKEN_HEADER, tkn)
+					req.Header.Add(TokenHeader, tkn)
 				}
 
 				res, err = client.Do(req)
@@ -184,6 +187,7 @@ var _ = Describe("Gnocker", func() {
 				Expect(res.StatusCode).To(Equal(http.StatusCreated))
 
 				response, err := ioutil.ReadAll(res.Body)
+				Expect(err).ShouldNot(HaveOccurred())
 				Expect(string(response)).To(Equal("success"))
 			})
 		})
@@ -195,7 +199,7 @@ var _ = Describe("Gnocker", func() {
 			expectedResponse := "The {{.designation}} is {{.class}} class."
 
 			err := app.AddConfig(spec.Configurations{
-				"templatedConfig": spec.Path{
+				"templatedConfig": spec.Configuration{
 					Paths: map[string]spec.Methods{
 						pathWithParameters: map[string]spec.Method{
 							http.MethodGet: {
@@ -232,7 +236,7 @@ var _ = Describe("Gnocker", func() {
 			expectedResponse := "success"
 
 			err := app.AddConfig(spec.Configurations{
-				"withTTL": spec.Path{
+				"withTTL": spec.Configuration{
 					TTL: "1s",
 					Paths: map[string]spec.Methods{
 						path: map[string]spec.Method{

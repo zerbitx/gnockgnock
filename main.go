@@ -13,11 +13,6 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type Server interface {
-	Start() error
-	Shutdown() error
-}
-
 func main() {
 	cfg := config.New()
 
@@ -28,9 +23,10 @@ func main() {
 	g := gnocker.New(
 		gnocker.WithHost(cfg.Host),
 		gnocker.WithPort(cfg.Port),
+		gnocker.WithConfigPort(cfg.ConfigPort),
 		gnocker.WithLogger(logger))
 
-	go captureInterrupt(g)
+	go captureInterrupt(g.Shutdown)
 
 	// Try to load a default config
 	{
@@ -63,10 +59,14 @@ func setLogLevel(lvlStr string) {
 	logrus.SetLevel(logrus.WarnLevel)
 }
 
-func captureInterrupt(g Server) {
+func captureInterrupt(shutdown func() error) {
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt)
 
 	<-c
-	g.Shutdown()
+	err := shutdown()
+
+	if err != nil {
+		fmt.Println("Something went wrong during shutdown: ", err)
+	}
 }
