@@ -1,5 +1,5 @@
 assignAccount:
-  ttl: 20s
+  ttl: 2m
   paths:
     '/v1/accounts/:userHandle':
       post:

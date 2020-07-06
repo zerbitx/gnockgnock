@@ -16,7 +16,7 @@ import (
 )
 
 var _ = Describe("Gnocker", func() {
-	client := http.Client{Timeout: time.Second * 10}
+	client := http.Client{Timeout: time.Millisecond * 100}
 	port := 1701
 	var app *gnocker
 
@@ -26,7 +26,6 @@ var _ = Describe("Gnocker", func() {
 
 		go func() {
 			err := app.Start()
-			println(err)
 			Expect(err).ShouldNot(HaveOccurred())
 		}()
 
@@ -42,6 +41,11 @@ var _ = Describe("Gnocker", func() {
 			_, err = client.Do(req)
 			return err
 		}).ShouldNot(HaveOccurred())
+	})
+
+	AfterSuite(func() {
+		client.CloseIdleConnections()
+		Expect(app.Shutdown()).ShouldNot(HaveOccurred())
 	})
 
 	Context("Nothing is configured", func() {
@@ -109,7 +113,9 @@ var _ = Describe("Gnocker", func() {
 					)
 
 					Expect(err).ShouldNot(HaveOccurred())
+
 					res, err := client.Do(req)
+
 					Expect(err).ShouldNot(HaveOccurred())
 					defer res.Body.Close()
 
@@ -268,6 +274,7 @@ var _ = Describe("Gnocker", func() {
 			)
 
 			Expect(err).ShouldNot(HaveOccurred())
+
 			res, err = client.Do(req)
 			Expect(err).ShouldNot(HaveOccurred())
 			defer res.Body.Close()

@@ -11,7 +11,7 @@
    },
    "flagAccountNotFound": {
       "paths": {
-         "/v1/accounts/:userID/extend": {
+         "/v1/accounts/:userID/flag": {
             "post": {
                "statusCode": 404,
                "responseBodyTemplate": "No account found for that {{.userID}}\n\n"
