@@ -2,7 +2,7 @@
 ## Who's there? 
 ### Whoever you'd like.
 
-[![Go Report](https://goreportcard.com/badge/github.com/zerbitx/gnockgnock)](https://goreportcard.com/badge/github.com/zerbitx/gnockgnock)
+[![Go Report](https://goreportcard.com/badge/github.com/zerbitx/gnockgnock)](https://goreportcard.com/report/github.com/zerbitx/gnockgnock)
   
 Live customizable server for e2e testing
 
