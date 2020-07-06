@@ -9,7 +9,6 @@ Live customizable server for e2e testing
 ### TODO:
     1) More configurability like headers to reply with, cookies etc.
     2) Convenience methods for programmtically configuring, rather than building the structs directly.
-     
     
 # Goal
 

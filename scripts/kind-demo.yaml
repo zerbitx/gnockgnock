@@ -1,0 +1,48 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: gnock-gnock
+  labels:
+    app: gnockgnock
+spec:
+  containers:
+  - name: gnockgnock
+    image: zerbitx/gnockgnock:latest
+    env:
+      - name: LOG_LEVEL
+        value: debug
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: gnock-gnock-service
+spec:
+  selector:
+    app: gnockgnock
+  ports:
+    - name: app
+      port: 8080
+    - name: config
+      port: 8081
+---
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: gnockgnock-ingress
+spec:
+  rules:
+  - host: gnockgnock
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: gnock-gnock-service
+          servicePort: 8080
+  - host: gnockconfig
+    http:
+      paths:
+        - path: /
+          backend:
+            serviceName: gnock-gnock-service
+            servicePort: 8081
+---
