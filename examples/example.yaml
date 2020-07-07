@@ -1,14 +1,15 @@
-assignAccount:
+loginOK:
   ttl: 2m
   paths:
-    '/v1/accounts/:userHandle':
+    'v1/login/:userID':
       post:
         statusCode: 201
-        responseBody: >
-          {"userHandle": "ryan"}
-    '/v1/gnocker':
-      get:
-        responseBody: 'v1'
-    '/v1/gnocker/:whosThere':
-      get:
-        responseBodyTemplate: 'This is a template based on {{ .whosThere }} blah blah\n'
+        responseBodyTemplate: >
+          {"userID": "{{.userID}}" }
+loging401:
+  ttl: 2m
+  paths:
+    'v1/login/:userID'
+      post:
+        statusCode: 401
+        responseBody: 'Unauthorized'

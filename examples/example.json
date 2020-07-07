@@ -1,0 +1,30 @@
+{
+  "flagAccount": {
+    "paths": {
+      "/v1/accounts/:userID/flag": {
+        "post": {
+          "statusCode": 201,
+          "responseHeaders": [
+            {
+              "Content-type": "application/json"
+            },
+            {
+              "X-something": "testlington"
+            }
+          ],
+          "responseBodyTemplate": "{\"{{.userID}}\": \"flagged\"}\n"
+        }
+      }
+    }
+  },
+  "flagAccountNotFound": {
+    "paths": {
+      "/v1/accounts/:userID/flag": {
+        "post": {
+          "statusCode": 404,
+          "responseBodyTemplate": "No account found for that {{.userID}}\n\n"
+        }
+      }
+    }
+  }
+}

@@ -4,8 +4,6 @@ go 1.14
 
 require (
 	github.com/gofiber/fiber v1.12.5-0.20200705093422-d2577a964350
-	github.com/gofiber/utils v0.0.9 // indirect
-	github.com/google/uuid v1.1.1
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/onsi/ginkgo v1.14.0

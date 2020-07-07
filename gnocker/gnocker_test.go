@@ -67,12 +67,19 @@ var _ = Describe("Gnocker", func() {
 		It("Responds as configured", func() {
 			path := "/any/old/path"
 			expectedResponse := "success"
+			expectedHeader := "X-GNOCK-TEST"
+			expectedHeaderValue := "A+"
 
 			err := app.AddConfig(spec.Configurations{
 				"configName": spec.Configuration{
 					Paths: map[string]spec.Methods{
 						path: map[string]spec.Method{
 							http.MethodGet: {
+								ResponseHeaders: []map[string]string{
+									{
+										expectedHeader: expectedHeaderValue,
+									},
+								},
 								ResponseBody: expectedResponse,
 								StatusCode:   http.StatusTeapot,
 							},
@@ -98,6 +105,7 @@ var _ = Describe("Gnocker", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			Expect(string(resBytes)).To(Equal(expectedResponse))
+			Expect(res.Header.Get(expectedHeader)).To(Equal(expectedHeaderValue))
 		})
 
 		Context("a configuration is posted", func() {
@@ -108,7 +116,7 @@ var _ = Describe("Gnocker", func() {
 
 					req, err := http.NewRequest(
 						http.MethodPost,
-						fmt.Sprintf("http://127.0.0.1:%d/config", port+1),
+						fmt.Sprintf("http://127.0.0.1:%d", port+1),
 						cfgFile,
 					)
 
@@ -121,8 +129,8 @@ var _ = Describe("Gnocker", func() {
 
 					Expect(res.StatusCode).To(Equal(http.StatusCreated))
 
-					configTokens := map[string]string{}
-					err = json.NewDecoder(res.Body).Decode(&configTokens)
+					var configs []string
+					err = json.NewDecoder(res.Body).Decode(&configs)
 
 					Expect(err).ShouldNot(HaveOccurred())
 
@@ -133,8 +141,8 @@ var _ = Describe("Gnocker", func() {
 
 					Expect(err).ShouldNot(HaveOccurred())
 
-					for _, tkn := range configTokens {
-						req.Header.Add(TokenHeader, tkn)
+					for _, c := range configs {
+						req.Header.Add(GnockerHeader, c)
 					}
 
 					res, err = client.Do(req)
@@ -155,7 +163,7 @@ var _ = Describe("Gnocker", func() {
 
 				req, err := http.NewRequest(
 					http.MethodPost,
-					fmt.Sprintf("http://127.0.0.1:%d/config", port+1),
+					fmt.Sprintf("http://127.0.0.1:%d", port+1),
 					cfgFile,
 				)
 
@@ -166,8 +174,8 @@ var _ = Describe("Gnocker", func() {
 
 				Expect(res.StatusCode).To(Equal(http.StatusCreated))
 
-				configTokens := map[string]string{}
-				err = json.NewDecoder(res.Body).Decode(&configTokens)
+				var configs []string
+				err = json.NewDecoder(res.Body).Decode(&configs)
 
 				Expect(err).ShouldNot(HaveOccurred())
 
@@ -178,8 +186,8 @@ var _ = Describe("Gnocker", func() {
 
 				Expect(err).ShouldNot(HaveOccurred())
 
-				for _, tkn := range configTokens {
-					req.Header.Add(TokenHeader, tkn)
+				for _, c := range configs {
+					req.Header.Add(GnockerHeader, c)
 				}
 
 				res, err = client.Do(req)
@@ -269,7 +277,7 @@ var _ = Describe("Gnocker", func() {
 
 			Expect(string(resBytes)).To(Equal(expectedResponse))
 
-			<-time.After(time.Second)
+			time.Sleep(time.Second)
 
 			req, err = http.NewRequest(
 				http.MethodGet,

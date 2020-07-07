@@ -16,8 +16,9 @@ type (
 
 	// Method configures how gnock should response.
 	Method struct {
-		ResponseBody         string `json:"responseBody" yaml:"responseBody"`
-		ResponseBodyTemplate string `json:"responseBodyTemplate" yaml:"responseBodyTemplate"`
-		StatusCode           int    `json:"statusCode" yaml:"statusCode"`
+		ResponseBody         string              `json:"responseBody" yaml:"responseBody"`
+		ResponseBodyTemplate string              `json:"responseBodyTemplate" yaml:"responseBodyTemplate"`
+		StatusCode           int                 `json:"statusCode" yaml:"statusCode"`
+		ResponseHeaders      []map[string]string `json:"responseHeaders" yaml:"responseHeaders"`
 	}
 )
