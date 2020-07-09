@@ -4,9 +4,8 @@ COPY bin/gnockgnock .
 
 ENV HOST=0.0.0.0
 ENV PORT=8080
-ENV CONFIG_PORT=8081
 ENV LOG_LEVEL=info
 
-EXPOSE ${PORT} ${CONFIG_PORT}
+EXPOSE ${PORT}
 
 CMD ["./gnockgnock"]

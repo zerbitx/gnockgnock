@@ -23,7 +23,7 @@ func main() {
 	g := gnocker.New(
 		gnocker.WithHost(cfg.Host),
 		gnocker.WithPort(cfg.Port),
-		gnocker.WithConfigPort(cfg.ConfigPort),
+		gnocker.WithConfigBasePath(cfg.ConfigBasePath),
 		gnocker.WithLogger(logger))
 
 	go captureInterrupt(g.Shutdown)

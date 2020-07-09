@@ -22,7 +22,7 @@
       "/v1/accounts/:userID/flag": {
         "post": {
           "statusCode": 404,
-          "responseBodyTemplate": "No account found for that {{.userID}}\n\n"
+          "responseBodyTemplate": "No account found for userID: {{.userID}}\n\n"
         }
       }
     }

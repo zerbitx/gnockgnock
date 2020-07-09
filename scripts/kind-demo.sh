@@ -43,6 +43,5 @@ echo "Adding gnockgnock service and ingress..."
 kubectl apply -f kind-demo.yaml
 echo
 
-echo "Now add gnockgnock and gnockconfig to your hosts file e.g."
+echo "Now add gnockgnock to your hosts file e.g."
 echo "127.0.0.1 gnockgnock"
-echo "127.0.0.1 gnockconfig"

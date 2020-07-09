@@ -19,24 +19,24 @@ type (
 	fiberBinding func(string, ...fiber.Handler) *fiber.Route
 
 	gnocker struct {
-		app          *fiber.App
-		configApp    *fiber.App
-		handlers     map[string]map[string]map[string]fiber.Handler
-		configs      map[string]struct{}
-		handlerBases map[string]fiberBinding
-		pathsSeen    map[string]bool
-		logger       logrus.FieldLogger
-		port         int
-		host         string
+		app            *fiber.App
+		configBasePath string
+		handlers       map[string]map[string]map[string]fiber.Handler
+		configs        map[string]struct{}
+		handlerBases   map[string]fiberBinding
+		pathsSeen      map[string]bool
+		logger         logrus.FieldLogger
+		port           int
+		host           string
 	}
 
 	configConflict string
 
 	config struct {
-		port       int
-		configPort int
-		host       string
-		logger     logrus.FieldLogger
+		port           int
+		configBasePath string
+		host           string
+		logger         logrus.FieldLogger
 	}
 
 	Option func(c *config)
@@ -54,36 +54,29 @@ func (cc configConflict) Error() string {
 func New(options ...Option) *gnocker {
 	logrus.SetReportCaller(true)
 	c := &config{
-		port:   8080,
-		logger: logrus.StandardLogger(),
-		host:   "127.0.0.1",
+		port:           8080,
+		logger:         logrus.StandardLogger(),
+		host:           "127.0.0.1",
+		configBasePath: "/gnockconfig",
 	}
 
 	for _, applyOption := range options {
 		applyOption(c)
 	}
 
-	// Silly convention?
-	if c.configPort == 0 {
-		c.configPort = c.port + 1
-	}
-
-	fiberSettings := &fiber.Settings{
+	app := fiber.New(&fiber.Settings{
 		ServerHeader:          "GnockGnock",
 		DisableStartupMessage: true,
-	}
-
-	app := fiber.New(fiberSettings)
-	configApp := fiber.New(fiberSettings)
+	})
 
 	g := &gnocker{
-		logger:    c.logger,
-		app:       app,
-		configApp: configApp,
-		port:      c.port,
-		host:      c.host,
-		handlers:  map[string]map[string]map[string]fiber.Handler{},
-		configs:   map[string]struct{}{},
+		logger:         c.logger,
+		app:            app,
+		port:           c.port,
+		host:           c.host,
+		configBasePath: c.configBasePath,
+		handlers:       map[string]map[string]map[string]fiber.Handler{},
+		configs:        map[string]struct{}{},
 		handlerBases: map[string]fiberBinding{
 			http.MethodGet:     app.Get,
 			http.MethodPost:    app.Post,
@@ -98,7 +91,7 @@ func New(options ...Option) *gnocker {
 		pathsSeen: map[string]bool{},
 	}
 
-	g.initConfigApp(configApp)
+	g.initConfigEndpoints()
 
 	return g
 }
@@ -113,23 +106,12 @@ func (g *gnocker) Start() error {
 		errc <- g.app.Listen(fmt.Sprintf("%s:%d", g.host, g.port))
 	}()
 
-	// Start up the config server
-	go func() {
-		configPort := g.port + 1
-		g.logger.WithFields(logrus.Fields{"host": g.host, "port": configPort}).Info("config")
-		errc <- g.configApp.Listen(fmt.Sprintf("%s:%d", g.host, configPort))
-	}()
-
 	return <-errc
 }
 
 // Shutdown gracefully shuts down both apps
 func (g *gnocker) Shutdown() error {
 	var err error = nil
-
-	if shutdownErr := g.configApp.Shutdown(); shutdownErr != nil {
-		err = fmt.Errorf("failed to shutdown config app %w", err)
-	}
 
 	if shutdownErr := g.app.Shutdown(); shutdownErr != nil {
 		err = fmt.Errorf("failed to shutdown app %w", err)
@@ -159,10 +141,10 @@ func WithPort(port int) Option {
 	}
 }
 
-// WithConfigPort sets the config app's port
-func WithConfigPort(configPort int) Option {
+// WithConfigBasePath sets the base path to post and look up configurations
+func WithConfigBasePath(basePath string) Option {
 	return func(c *config) {
-		c.configPort = configPort
+		c.configBasePath = basePath
 	}
 }
 
@@ -290,8 +272,14 @@ func (g *gnocker) AddConfig(operations spec.Configurations) error {
 	return nil
 }
 
-func (g *gnocker) initConfigApp(configApp *fiber.App) {
-	configApp.Post("/", func(c *fiber.Ctx) {
+func (g *gnocker) initConfigEndpoints() {
+	g.logger.
+		WithFields(logrus.Fields{
+			http.MethodPost: g.configBasePath,
+			http.MethodGet:  g.configBasePath,
+		}).Debug("config endpoints")
+
+	g.app.Post(g.configBasePath, func(c *fiber.Ctx) {
 		bodyReader := strings.NewReader(c.Body())
 
 		newOperations := spec.Configurations{}
@@ -330,7 +318,7 @@ func (g *gnocker) initConfigApp(configApp *fiber.App) {
 		}
 	})
 
-	configApp.Get("/", func(c *fiber.Ctx) {
+	g.app.Get(g.configBasePath, func(c *fiber.Ctx) {
 		var configs []string
 		for config := range g.configs {
 			configs = append(configs, config)

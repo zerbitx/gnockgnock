@@ -116,7 +116,7 @@ var _ = Describe("Gnocker", func() {
 
 					req, err := http.NewRequest(
 						http.MethodPost,
-						fmt.Sprintf("http://127.0.0.1:%d", port+1),
+						fmt.Sprintf("http://127.0.0.1:%d/gnockconfig", port),
 						cfgFile,
 					)
 
@@ -163,7 +163,7 @@ var _ = Describe("Gnocker", func() {
 
 				req, err := http.NewRequest(
 					http.MethodPost,
-					fmt.Sprintf("http://127.0.0.1:%d", port+1),
+					fmt.Sprintf("http://127.0.0.1:%d/gnockconfig", port),
 					cfgFile,
 				)
 

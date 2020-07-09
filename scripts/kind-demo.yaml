@@ -22,8 +22,6 @@ spec:
   ports:
     - name: app
       port: 8080
-    - name: config
-      port: 8081
 ---
 apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
@@ -38,11 +36,4 @@ spec:
         backend:
           serviceName: gnock-gnock-service
           servicePort: 8080
-  - host: gnockconfig
-    http:
-      paths:
-        - path: /
-          backend:
-            serviceName: gnock-gnock-service
-            servicePort: 8081
 ---
