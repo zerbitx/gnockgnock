@@ -39,6 +39,7 @@ type (
 		logger         logrus.FieldLogger
 	}
 
+	// Option is a function that can modify a default config
 	Option func(c *config)
 )
 
@@ -111,13 +112,11 @@ func (g *gnocker) Start() error {
 
 // Shutdown gracefully shuts down both apps
 func (g *gnocker) Shutdown() error {
-	var err error = nil
-
 	if shutdownErr := g.app.Shutdown(); shutdownErr != nil {
-		err = fmt.Errorf("failed to shutdown app %w", err)
+		return fmt.Errorf("failed to shutdown app %w", shutdownErr)
 	}
 
-	return err
+	return nil
 }
 
 // WithLogger overrides the default logger
