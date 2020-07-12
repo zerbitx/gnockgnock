@@ -72,16 +72,16 @@ var _ = Describe("Gnocker", func() {
 
 			err := app.AddConfig(spec.Configurations{
 				"configName": spec.Configuration{
-					Paths: map[string]spec.Methods{
-						path: map[string]spec.Method{
+					Paths: map[string]spec.Responses{
+						path: map[string]spec.Response{
 							http.MethodGet: {
-								ResponseHeaders: []map[string]string{
+								Headers: []map[string]string{
 									{
 										expectedHeader: expectedHeaderValue,
 									},
 								},
-								ResponseBody: expectedResponse,
-								StatusCode:   http.StatusTeapot,
+								Body:       expectedResponse,
+								StatusCode: http.StatusTeapot,
 							},
 						},
 					},
@@ -142,7 +142,7 @@ var _ = Describe("Gnocker", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 
 					for _, c := range configs {
-						req.Header.Add(GnockerHeader, c)
+						req.Header.Add(ConfigSelectHeader, c)
 					}
 
 					res, err = client.Do(req)
@@ -187,7 +187,7 @@ var _ = Describe("Gnocker", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 
 				for _, c := range configs {
-					req.Header.Add(GnockerHeader, c)
+					req.Header.Add(ConfigSelectHeader, c)
 				}
 
 				res, err = client.Do(req)
@@ -208,11 +208,11 @@ var _ = Describe("Gnocker", func() {
 
 			err := app.AddConfig(spec.Configurations{
 				"templatedConfig": spec.Configuration{
-					Paths: map[string]spec.Methods{
-						pathWithParameters: map[string]spec.Method{
+					Paths: map[string]spec.Responses{
+						pathWithParameters: map[string]spec.Response{
 							http.MethodGet: {
-								ResponseBodyTemplate: expectedResponse,
-								StatusCode:           http.StatusOK,
+								BodyTemplate: expectedResponse,
+								StatusCode:   http.StatusOK,
 							},
 						},
 					},
@@ -246,11 +246,11 @@ var _ = Describe("Gnocker", func() {
 			err := app.AddConfig(spec.Configurations{
 				"withTTL": spec.Configuration{
 					TTL: "1s",
-					Paths: map[string]spec.Methods{
-						path: map[string]spec.Method{
+					Paths: map[string]spec.Responses{
+						path: map[string]spec.Response{
 							http.MethodGet: {
-								ResponseBody: expectedResponse,
-								StatusCode:   http.StatusTeapot,
+								Body:       expectedResponse,
+								StatusCode: http.StatusTeapot,
 							},
 						},
 					},

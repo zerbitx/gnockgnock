@@ -4,7 +4,7 @@
          "/v1/gnock/gnock": {
             "post": {
                "statusCode": 201,
-               "responseBody": "success"
+               "body": "success"
             }
          }
       }

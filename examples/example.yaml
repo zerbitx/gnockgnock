@@ -4,12 +4,16 @@ loginOK:
     'v1/login/:userID':
       post:
         statusCode: 201
-        responseBodyTemplate: >
+        bodyTemplate: >
           {"userID": "{{.userID}}" }
-loging401:
+login401:
   ttl: 2m
+  override: true
   paths:
-    'v1/login/:userID'
+    'v1/login/:userID':
       post:
         statusCode: 401
-        responseBody: 'Unauthorized'
+        headers:
+         - Content-Type: application/json
+        bodyTemplate: >
+          {{.userID}} is not in the sudoers file.   This incident will be reported.
