@@ -1,3 +1,29 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: gnockgnock-config
+  namespace: default
+data:
+  gnockgnock.yaml: |
+    loginOK:
+      paths:
+        'v1/login/:userID':
+          post:
+            statusCode: 201
+            bodyTemplate: >
+              {"userID": "{{.userID}}" }
+    login401:
+      override: true
+      paths:
+        'v1/login/:userID':
+          post:
+            statusCode: 401
+            headers:
+             - Content-Type: application/json
+            bodyTemplate: >
+              {{.userID}} is not in the sudoers file.   This incident will be reported.
+---
 kind: Pod
 apiVersion: v1
 metadata:
@@ -6,11 +32,20 @@ metadata:
     app: gnockgnock
 spec:
   containers:
-  - name: gnockgnock
-    image: zerbitx/gnockgnock:latest
-    env:
-      - name: LOG_LEVEL
-        value: debug
+    - name: gnockgnock
+      image: zerbitx/gnockgnock:latest
+      env:
+        - name: LOG_LEVEL
+          value: debug
+        - name: GNOCK_CONFIG
+          value: /etc/config/gnockgnock.yaml
+      volumeMounts:
+        - name: config-volume
+          mountPath: "/etc/config"
+  volumes:
+    - name: config-volume
+      configMap:
+        name: gnockgnock-config
 ---
 kind: Service
 apiVersion: v1
@@ -29,11 +64,11 @@ metadata:
   name: gnockgnock-ingress
 spec:
   rules:
-  - host: gnockgnock
-    http:
-      paths:
-      - path: /
-        backend:
-          serviceName: gnock-gnock-service
-          servicePort: 8080
+    - host: gnockgnock
+      http:
+        paths:
+          - path: /
+            backend:
+              serviceName: gnock-gnock-service
+              servicePort: 8080
 ---
