@@ -1,5 +1,7 @@
 package spec
 
+import "time"
+
 type (
 	// Configurations is a mapping from name to a set of path/method expectations
 	Configurations map[string]Configuration
@@ -16,9 +18,11 @@ type (
 
 	// Response configures how gnock should response.
 	Response struct {
-		Body         string              `json:"body" yaml:"body"`
-		BodyTemplate string              `json:"bodyTemplate" yaml:"bodyTemplate"`
-		StatusCode   int                 `json:"statusCode" yaml:"statusCode"`
-		Headers      []map[string]string `json:"responseHeaders" yaml:"responseHeaders"`
+		Body          string              `json:"body" yaml:"body"`
+		BodyTemplate  string              `json:"bodyTemplate" yaml:"bodyTemplate"`
+		StatusCode    int                 `json:"statusCode" yaml:"statusCode"`
+		Headers       []map[string]string `json:"responseHeaders" yaml:"responseHeaders"`
+		Delay         string              `json:"delay" yaml:"delay"`
+		DelayDuration time.Duration       `json:"-" yaml:"-"`
 	}
 )

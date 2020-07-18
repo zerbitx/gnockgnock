@@ -1,7 +1,6 @@
 package gnocker
 
 import (
-	"bytes"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -170,6 +169,15 @@ func (g *gnocker) AddConfig(operations spec.Configurations) error {
 					g.handlers[configName][path] = map[string]fiber.Handler{}
 				}
 
+				var delay time.Duration = 0
+				if options.Delay != "" {
+					if delay, err = time.ParseDuration(options.Delay); err != nil {
+						g.logger.WithError(err).Error("Failed to parse delay duration")
+						return err
+					}
+					options.DelayDuration = delay
+				}
+
 				handler, err := g.handler(configName, options)
 				if err != nil {
 					return err
@@ -242,9 +250,11 @@ func (g *gnocker) handler(configName string, options spec.Response) (func(c *fib
 			}
 		}
 
+		// Wait the configured delay, or 0/immediate if none
+		time.Sleep(options.DelayDuration)
+
 		// If a template was configured and parsed, correctly
 		if tpl != nil {
-			var buf bytes.Buffer
 			templateVars := map[string]string{}
 
 			// populate the template data from the params
@@ -252,14 +262,15 @@ func (g *gnocker) handler(configName string, options spec.Response) (func(c *fib
 				templateVars[name] = c.Params(name)
 			}
 
-			err := tpl.Execute(&buf, templateVars)
+			c.Fasthttp.Response.BodyWriter()
+			err := tpl.Execute(c.Fasthttp.Response.BodyWriter(), templateVars)
 
 			if err != nil {
 				g.logger.WithError(err).Error("failed to execute template")
+				c.Send("Gnock gnock has failed you.  This is likely not your fault: " + err.Error())
 				c.SendStatus(http.StatusInternalServerError)
+				return
 			}
-
-			c.SendBytes(buf.Bytes())
 		} else if options.Body != "" {
 			// otherwise use the static response
 			c.Send(options.Body)

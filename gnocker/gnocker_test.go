@@ -16,7 +16,7 @@ import (
 )
 
 var _ = Describe("Gnocker", func() {
-	client := http.Client{Timeout: time.Millisecond * 100}
+	client := http.Client{Timeout: time.Second * 3}
 	port := 1701
 	var app *gnocker
 
@@ -293,5 +293,48 @@ var _ = Describe("Gnocker", func() {
 
 			Expect(res.StatusCode).To(Equal(http.StatusNotFound))
 		})
+	})
+
+	Context("With a Delay", func() {
+		It("Should wait the configured delay before responding", func() {
+			path := "/with/delay"
+			expectedResponse := "success"
+
+			err := app.AddConfig(spec.Configurations{
+				"withDelay": spec.Configuration{
+					Paths: map[string]spec.Responses{
+						path: map[string]spec.Response{
+							http.MethodGet: {
+								Body:       expectedResponse,
+								StatusCode: http.StatusTeapot,
+								Delay:      "2s",
+							},
+						},
+					},
+				},
+			})
+
+			Expect(err).ShouldNot(HaveOccurred())
+
+			req, err := http.NewRequest(
+				http.MethodGet,
+				fmt.Sprintf("http://127.0.0.1:%d%s", port, path),
+				nil,
+			)
+
+			Expect(err).ShouldNot(HaveOccurred())
+
+			responded := false
+			go func() {
+				time.Sleep(time.Second * 1)
+				Expect(responded).To(BeFalse())
+			}()
+
+			res, err := client.Do(req)
+			Expect(err).ShouldNot(HaveOccurred())
+			defer res.Body.Close()
+
+			Expect(res.StatusCode).To(Equal(http.StatusTeapot))
+		}, 2250)
 	})
 })

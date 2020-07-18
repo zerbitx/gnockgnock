@@ -7,13 +7,12 @@
 Live customizable server for e2e testing
 
 ### TODOs:
-    1) Delays for responses to test things like timeouts 
-    2) Sequences of responses? Repeated calls to the same endpoint can run through a list of responses?
-    3) Cookies
-    4) ETags ?
-    5) Proxy to record responses and build configs
-    6) Different ports
-    7) HTTP/S
+    1) Sequences of responses? Repeated calls to the same endpoint can run through a list of responses?
+    2) Cookies
+    3) ETags ?
+    4) Proxy to record responses and build configs
+    5) Different ports
+    6) HTTP/S
     
 # The Idea
 

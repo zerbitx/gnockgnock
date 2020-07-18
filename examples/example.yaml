@@ -1,5 +1,4 @@
 loginOK:
-  ttl: 2m
   paths:
     'v1/login/:userID':
       post:
@@ -7,8 +6,6 @@ loginOK:
         bodyTemplate: >
           {"userID": "{{.userID}}" }
 login401:
-  ttl: 2m
-  override: true
   paths:
     'v1/login/:userID':
       post:
@@ -17,3 +14,13 @@ login401:
          - Content-Type: application/json
         bodyTemplate: >
           {{.userID}} is not in the sudoers file.   This incident will be reported.
+loginTimeout:
+  paths:
+    'v1/login/:userID':
+      post:
+        delay: 30s
+        status: 201
+        headers:
+          - Content-Type: application/json
+        bodyTemplate: >
+          {"userID": "{{.userID}}" }
